@@ -9,4 +9,41 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
+library(rvest)
 ```
+
+# Problem 1
+
+Create a dataframe containing all file names
+
+```{r}
+file_names = tibble(
+  id = list.files(path = "./data")
+) 
+```
+
+Iterate over file names and read in data for each subject using purrr::map and saving the result as a new variable in the dataframe
+```{r message = FALSE}
+study_data = 
+  file_names %>% 
+	mutate(data = map(.x = id, ~read_csv(str_c("./data/", .x)))) 
+```
+
+Tidy the result; manipulate file names to include control arm and subject ID, make sure weekly observations are “tidy”, and do any other tidying that’s necessary
+
+```{r}
+study_data_tidy = 
+  study_data %>% 
+  unnest() %>% 
+  separate(id, into = c("arm_type", "s_id"), sep = "_") %>%
+  separate(s_id, into = c("subject_id", "c")) %>% 
+  gather(key = "week", value = "obs_value", week_1:week_8) %>% 
+  separate(week, into = c("nn", "week"), sep = "_") %>% 
+  select(-c, -nn) %>% 
+  mutate(week = as.numeric(week))
+study_data_tidy
+```
+
+
+
+
