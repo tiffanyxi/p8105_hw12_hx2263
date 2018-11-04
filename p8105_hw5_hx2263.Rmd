@@ -14,6 +14,7 @@ library(rvest)
 
 # Problem 1
 
+## Import and tidy data
 Create a dataframe containing all file names
 
 ```{r}
@@ -23,6 +24,7 @@ file_names = tibble(
 ```
 
 Iterate over file names and read in data for each subject using purrr::map and saving the result as a new variable in the dataframe
+
 ```{r import_data, message = FALSE}
 study_data = 
   file_names %>% 
@@ -31,7 +33,7 @@ study_data =
 
 Tidy the result; manipulate file names to include control arm and subject ID, make sure weekly observations are “tidy”, and do any other tidying that’s necessary
 
-```{r tidy, message=FALSE}
+```{r tidy, message = FALSE, warning = FALSE}
 study_data_tidy = 
   study_data %>% 
   unnest() %>% 
@@ -62,4 +64,66 @@ study_data_tidy %>%
 
 **Comment**:
 All subjects are at same level in 1st week but observations values in experimental group end in higher level than control arm. There are obvious increasing trend in experimental group, while in control group, values remain fluctuating in same level.
+
+# Problem 2
+
+### Import data
+
+```{r data_import}
+raw_homicide = read.csv("https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv")
+```
+
+**Description of raw data**
+
+The raw dataset contains `r ncol(raw_homicide)` columns and `r nrow(raw_homicide)` rows, wich means there are `r ncol(raw_homicide)` variables and `r nrow(raw_homicide)` observations. Variables include `r colnames(raw_homicide)` repectively stand for ID, death date, victim first name, last name, race, age and gender, site latitude and longtitude, city and states, dispostion.
+
+### Create a city_state variable
+
+```{r}
+homicide_tidy = 
+  raw_homicide %>% 
+  mutate(city_state = str_c(city, ", ", state))
+```
+
+### Summarize within cities to obtain the Total Number of Homicides
+
+```{r}
+total_num = 
+  homicide_tidy %>% 
+  group_by(city_state) %>%
+  summarise(total_number = n())
+total_num
+```
+
+### Number of Unsolved Homicides
+
+```{r}
+total_unslv = 
+  homicide_tidy %>% 
+  filter(disposition == "Closed without arrest" | disposition == "Open/No arrest") %>% 
+  group_by(city_state) %>% 
+  summarise(total_unsolved = n())
+total_unslv
+```
+
+
+Baltimore, MD - prop.test function to estimate the proportion of homicides that are unsolved; save the output of prop.test as an R object, apply the broom::tidy to this object and pull the estimated proportion and confidence intervals from the resulting tidy dataframe.
+
+```{r}
+bm_total = total_num %>%
+  filter(city_state == "Baltimore, MD")
+
+bm_unsolved = total_unslv %>%
+  filter(city_state == "Baltimore, MD")
+
+prop_test_bm = prop.test(bm_unsolved$total_unsolved, bm_total$total_number)
+
+prop_test_bm %>% 
+  broom::tidy() %>%
+  select(estimate, conf.low, conf.high)
+```
+
+Now run prop.test for each of the cities in your dataset, and extract both the proportion of unsolved homicides and the confidence interval for each. Do this within a “tidy” pipeline, making use of purrr::map, purrr::map2, list columns and  unnest as necessary to create a tidy dataframe with estimated proportions and CIs for each city.
+
+Create a plot that shows the estimates and CIs for each city – check out geom_errorbar for a way to add error bars based on the upper and lower limits. Organize cities according to the proportion of unsolved homicides.
 
