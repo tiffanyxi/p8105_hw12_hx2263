@@ -23,7 +23,7 @@ file_names = tibble(
 ```
 
 Iterate over file names and read in data for each subject using purrr::map and saving the result as a new variable in the dataframe
-```{r message = FALSE}
+```{r import_data, message = FALSE}
 study_data = 
   file_names %>% 
 	mutate(data = map(.x = id, ~read_csv(str_c("./data/", .x)))) 
@@ -31,19 +31,35 @@ study_data =
 
 Tidy the result; manipulate file names to include control arm and subject ID, make sure weekly observations are “tidy”, and do any other tidying that’s necessary
 
-```{r}
+```{r tidy, message=FALSE}
 study_data_tidy = 
   study_data %>% 
   unnest() %>% 
-  separate(id, into = c("arm_type", "s_id"), sep = "_") %>%
-  separate(s_id, into = c("subject_id", "c")) %>% 
+  separate(id, into = c("arm_type", "id")) %>% 
+  mutate(subject_id = str_c(arm_type, id)) %>%
   gather(key = "week", value = "obs_value", week_1:week_8) %>% 
   separate(week, into = c("nn", "week"), sep = "_") %>% 
-  select(-c, -nn) %>% 
-  mutate(week = as.numeric(week))
+  select(-nn) %>% 
+  mutate(week = as.numeric(week),
+         id = as.numeric(id))
 study_data_tidy
 ```
 
+Make a spaghetti plot showing observations on each subject over time, and comment on differences between groups.
 
+```{r spaghetti_plot}
+study_data_tidy %>% 
+  ggplot(aes(x = week, y = obs_value, group = subject_id, color = arm_type)) +
+  geom_line() +
+  labs(
+    title = "Observations on Each Subject over 8 Weeks on Both Groups", 
+    x = "Week", 
+    y = "Observations Value", 
+    legend = "Group type"
+  ) +
+  scale_x_continuous(breaks = c(1:8))
+```
 
+**Comment**:
+All subjects are at same level in 1st week but observations values in experimental group end in higher level than control arm. There are obvious increasing trend in experimental group, while in control group, values remain fluctuating in same level.
 
