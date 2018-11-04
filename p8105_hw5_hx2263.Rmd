@@ -85,6 +85,11 @@ homicide_tidy =
   mutate(city_state = str_c(city, ", ", state))
 ```
 
+```{r}
+homicide_tidy %>% 
+  count(city_state)
+```
+
 ### Summarize within cities to obtain the Total Number of Homicides
 
 ```{r}
@@ -106,8 +111,7 @@ total_unslv =
 total_unslv
 ```
 
-
-Baltimore, MD - prop.test function to estimate the proportion of homicides that are unsolved; save the output of prop.test as an R object, apply the broom::tidy to this object and pull the estimated proportion and confidence intervals from the resulting tidy dataframe.
+Baltimore, MD--estimate the proportion of homicides that are unsolved
 
 ```{r}
 bm_total = total_num %>%
@@ -124,6 +128,20 @@ prop_test_bm %>%
 ```
 
 Now run prop.test for each of the cities in your dataset, and extract both the proportion of unsolved homicides and the confidence interval for each. Do this within a “tidy” pipeline, making use of purrr::map, purrr::map2, list columns and  unnest as necessary to create a tidy dataframe with estimated proportions and CIs for each city.
+
+```
+total_num %>% 
+  mutate(total_hom = map2(total_unslv$total_unsolved, total_num$total_number, prop.test))
+prop_city = function(cs){
+  prop.test((total_unslv %>% filter(city_state == cs))$total_unsolved, 
+            (total_num %>% filter(city_state == cs))$total_number) %>% 
+  broom::tidy() %>%
+  select(estimate, conf.low, conf.high)
+}
+
+prop_all_est = map(total_num$city_state, prop_city)
+  
+```
 
 Create a plot that shows the estimates and CIs for each city – check out geom_errorbar for a way to add error bars based on the upper and lower limits. Organize cities according to the proportion of unsolved homicides.
 
