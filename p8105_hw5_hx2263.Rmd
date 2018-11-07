@@ -143,7 +143,7 @@ prop_all_est =
   unnest() %>% 
   select(city_state, estimate, conf.low, conf.high)
 
-prop_all_est %>%
+head(prop_all_est) %>%
   knitr::kable(digits = 3)
 ```
 
@@ -167,3 +167,4 @@ prop_all_est %>%
     theme(axis.text = element_text(size = 8))
 ```
 
+Chicago, IL has a very high estimates but narrow confidence interval, while Richmond, VA has the lowest estimates propotion. So chicago is less safer than Richmond, VA.
