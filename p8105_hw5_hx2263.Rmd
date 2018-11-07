@@ -141,12 +141,15 @@ prop_all_est =
                           total_num$total_number, prop.test)) %>% 
   mutate(total_hom = map(total_hom, broom::tidy)) %>% 
   unnest() %>% 
-  select(city_state, estimate, conf.low, conf.high) %>%
+  select(city_state, estimate, conf.low, conf.high)
+
+prop_all_est %>%
   knitr::kable(digits = 3)
-prop_all_est
 ```
 
-### Plot that shows the estimates and CIs for each city – check out geom_errorbar for a way to add error bars based on the upper and lower limits. Organize cities according to the proportion of unsolved homicides.
+### Plot 
+
+that shows the estimates and CIs for each city – check out geom_errorbar for a way to add error bars based on the upper and lower limits. Organize cities according to the proportion of unsolved homicides.
 
 ```{r plot, fig.width = 10, fig.height = 8}
 prop_all_est %>%
