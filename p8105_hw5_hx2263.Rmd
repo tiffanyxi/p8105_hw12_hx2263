@@ -43,17 +43,17 @@ study_data_tidy =
   gather(key = "week", value = "obs_value", week_1:week_8) %>% 
   separate(week, into = c("nn", "week"), sep = "_") %>% 
   select(-nn) %>% 
-  mutate(week = as.numeric(week),
-         id = as.numeric(id))
+  mutate(week = as.numeric(week))
 study_data_tidy
 ```
 
-Make a spaghetti plot showing observations on each subject over time, and comment on differences between groups.
+### Spaghetti plot showing observations on each subject over time
 
 ```{r spaghetti_plot, fig.width = 8, fig.height = 6}
 study_data_tidy %>% 
-  ggplot(aes(x = week, y = obs_value, group = subject_id, color = arm_type)) +
+  ggplot(aes(x = week, y = obs_value, color = id)) +
   geom_line() +
+  facet_grid(~ arm_type) +
   labs(
     title = "Observations on Each Subject over 8 Weeks on Both Groups", 
     x = "Week", 
@@ -64,6 +64,7 @@ study_data_tidy %>%
 ```
 
 **Comment**:
+
 All subjects are at same level in 1st week but observations values in experimental group end in higher level than control arm. There are obvious increasing trend in experimental group, while in control group, values remain fluctuating in same level.
 
 # Problem 2
@@ -86,9 +87,11 @@ homicide_tidy =
   mutate(city_state = str_c(city, ", ", state)) 
 ```
 
+In the problem description, this dataset should contains homicides from 50 cities, but after summarizing city_state, there are `r nrow(homicide_tidy %>% count(city_state))` cities. There is two "Tulsa". There is only one homicide in the row of "Tulsa, AL". Also, after googling we know that Tulsa is in OK, and the longitude and latitude also shows that this homicide was happened in Tulsa, OK. "Tulsa, AL" might be a typo in dataset, so I exclude this observation before further analysis.
+
 ```{r}
-homicide_tidy %>% 
-  count(city_state)
+homicide_tidy = homicide_tidy %>% 
+  filter(city_state != "Tulsa, AL")
 ```
 
 ### Summarize within cities to obtain the Total Number of Homicides
@@ -96,7 +99,7 @@ homicide_tidy %>%
 ```{r}
 total_num = 
   homicide_tidy %>% 
-  group_by(city) %>%
+  group_by(city_state) %>%
   summarise(total_number = n())
 total_num
 ```
@@ -112,11 +115,11 @@ total_unslv =
 total_unslv
 ```
 
-Baltimore, MD--estimate the proportion of homicides that are unsolved
+### Baltimore, MD--estimate the proportion of unsolved homicides
 
 ```{r}
 bm_total = total_num %>%
-  filter(city == "Baltimore")
+  filter(city_state == "Baltimore, MD")
 
 bm_unsolved = total_unslv %>%
   filter(city_state == "Baltimore, MD")
@@ -125,10 +128,11 @@ prop_test_bm = prop.test(bm_unsolved$total_unsolved, bm_total$total_number)
 
 prop_test_bm %>% 
   broom::tidy() %>%
-  select(estimate, conf.low, conf.high)
+  select(estimate, conf.low, conf.high) %>%
+  knitr::kable(digits = 3)
 ```
 
-Prop.test for each of the cities
+### Prop.test for each of the cities
 
 ```{r}
 prop_all_est = 
@@ -137,21 +141,22 @@ prop_all_est =
                           total_num$total_number, prop.test)) %>% 
   mutate(total_hom = map(total_hom, broom::tidy)) %>% 
   unnest() %>% 
-  select(city, estimate, conf.low, conf.high)
+  select(city_state, estimate, conf.low, conf.high) %>%
+  knitr::kable(digits = 3)
 prop_all_est
 ```
 
-Create a plot that shows the estimates and CIs for each city – check out geom_errorbar for a way to add error bars based on the upper and lower limits. Organize cities according to the proportion of unsolved homicides.
+### Plot that shows the estimates and CIs for each city – check out geom_errorbar for a way to add error bars based on the upper and lower limits. Organize cities according to the proportion of unsolved homicides.
 
 ```{r plot, fig.width = 10, fig.height = 8}
 prop_all_est %>%
-  ggplot(aes(x = reorder(city, estimate), y = estimate)) +
+  ggplot(aes(x = reorder(city_state, estimate), y = estimate)) +
   coord_flip() + 
   geom_point(size = 1.5, shape = 18, fill = "white") +
   geom_errorbar(mapping = aes(ymin = conf.low, ymax = conf.high)) +
   labs(
-        title = "Estimates Proportion and CIs for Each City",
-        x = "City",
+        title = "Estimates and CIs for Each City",
+        x = "City State",
         y = "Estimate proportion",
         caption = "Data from the github package"
       ) +
